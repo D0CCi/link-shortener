@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestHandlePOST(t *testing.T) {
@@ -60,17 +62,17 @@ func TestHandlePOST(t *testing.T) {
 
 func TestHandleGET(t *testing.T) {
 	s := NewURLShorter()
-	longURL := "http://yandex.ru"
-	postReq := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(longURL))
-	postRR := httptest.NewRecorder()
-	s.HandlePOST(postRR, postReq)
+	r := chi.NewRouter()
+	r.Get("/{id}", s.HandleGET)
 
-	shortURL := postRR.Body.String()
-	id := strings.TrimPrefix(shortURL, "http://localhost:8082/")
+	longURL := "http://yandex.ru"
+	id := "testID"
+	s.StoreURL(id, longURL)
 
 	getReq := httptest.NewRequest(http.MethodGet, "/"+id, nil)
 	getRR := httptest.NewRecorder()
-	s.HandleGET(getRR, getReq)
+
+	r.ServeHTTP(getRR, getReq)
 
 	if getRR.Code != http.StatusTemporaryRedirect {
 		t.Errorf("expected status %d, got %d",

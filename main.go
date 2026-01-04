@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -15,10 +17,13 @@ type URLShorter struct {
 }
 
 func main() {
+	r := chi.NewRouter()
 	s := NewURLShorter()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.HandleRequest)
-	err := http.ListenAndServe(":8082", mux)
+
+	r.Post("/", s.HandlePOST)
+	r.Get("/{id}", s.HandleGET)
+
+	err := http.ListenAndServe(":8082", r)
 	if err != nil {
 		panic(err)
 	}
@@ -27,16 +32,6 @@ func main() {
 func NewURLShorter() *URLShorter {
 	return &URLShorter{
 		urls: make(map[string]string),
-	}
-}
-
-func (s *URLShorter) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		s.HandlePOST(w, r)
-	} else if r.Method == http.MethodGet {
-		s.HandleGET(w, r)
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
 	}
 }
 
@@ -55,7 +50,7 @@ func (s *URLShorter) HandlePOST(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *URLShorter) HandleGET(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[1:]
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
